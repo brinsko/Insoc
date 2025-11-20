@@ -1,4 +1,4 @@
-cat > /usr/local/bin/setup-my-dns-and-logging-server.sh <<'SERVER_EOF'
+
 #!/bin/bash
 # merged server installer:
 # original DNS + rsyslog setup (untouched), plus admin blocking helper feature added at the end.
@@ -229,6 +229,6 @@ echo "Use: sudo /usr/local/bin/admin-block-client.sh block|unblock|status <clien
 
 # ensure marker dir exists
 mkdir -p /var/lib/admin-block-client
-SERVER_EOF
+
 
 echo "Created /usr/local/bin/setup-my-dns-and-logging-server.sh and made it executable."
