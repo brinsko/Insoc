@@ -1,4 +1,4 @@
-cat > /usr/local/bin/join-dns-and-enable-full-logging.sh <<'CLIENT_EOF'
+
 #!/bin/bash
 # merged client installer:
 # original join-dns-and-enable-full-logging.sh (untouched), plus added watchdog + systemd unit
@@ -213,5 +213,5 @@ systemctl enable --now client-watchdog.service
 
 echo -e "\033[1;32mCLIENT WATCHDOG INSTALLED & STARTED\033[0m"
 echo "Check logs: journalctl -u client-watchdog.service -f"
-CLIENT_EOF
+
 echo "Created /usr/local/bin/join-dns-and-enable-full-logging.sh and made it executable."
