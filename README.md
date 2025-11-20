@@ -11,21 +11,24 @@
 
 
 ### On SERVER machine:
-    1) https://github.com/brinsko/Insoc/main/setup-server.sh
-    2) chmod +x setup-server.sh
-    3) DNS setup -     /usr/local/bin/setup-my-dns-and-logging-server.sh 192.168.29.206 server.example.com example.com (server ip) (fqdn) (domain name)
+    1) cd /usr/local/bin
+    2) wget https://raw.githubusercontent.com/brinsko/Insoc/main/setup-server.sh -O setup-server.sh
+    3) chmod +x setup-server.sh
+    4) DNS setup -     /usr/local/bin/setup-server.sh  192.168.29.206 server.example.com example.com (server ip) (fqdn) (domain name)
                           /usr/local/bin/add-client.sh client99 192.168.29.199 (client name) (client ip)
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     For Block --             sudo /usr/local/bin/admin-block-client.sh block <client-ip>
     Unblock --           sudo /usr/local/bin/admin-block-client.sh unblock <client-ip>
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    For watch logs --     ls /var/log/remote
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------    
 
 
 # On every CLIENT (once)
-    1) https://github.com/brinsko/Insoc/main/join-client.sh
-    1) chmod +x join-client.sh
-    2)  command  - /usr/local/bin/join-dns-and-enable-full-logging.sh 192.168.29.206 example.com client99 (server ip) ( domain) (client name) 
+    1) cd /usr/local/bin 
+    2) wget https://raw.githubusercontent.com/brinsko/Insoc/main/setup-server.sh -O join-client.sh
+    3) chmod +x join-client.sh
+    4)  command  - /usr/local/bin/join-client.sh 192.168.29.206 example.com client99 (server ip) ( domain) (client name) 
 
 
 
