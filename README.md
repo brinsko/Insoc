@@ -26,7 +26,7 @@
 
 # On every CLIENT (once)
     1) cd /usr/local/bin 
-    2) wget https://raw.githubusercontent.com/brinsko/Insoc/main/setup-server.sh -O join-client.sh
+    2) wget https://raw.githubusercontent.com/brinsko/Insoc/main/join-client.sh -O join-client.sh
     3) chmod +x join-client.sh
     4)  command  - /usr/local/bin/join-client.sh 192.168.29.206 example.com client99 (server ip) ( domain) (client name) 
 
