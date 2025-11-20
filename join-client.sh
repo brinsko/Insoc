@@ -211,7 +211,6 @@ UNIT
 systemctl daemon-reload
 systemctl enable --now client-watchdog.service
 
-echo -e "\033[1;32mCLIENT WATCHDOG INSTALLED & STARTED\033[0m"
-echo "Check logs: journalctl -u client-watchdog.service -f"
+
 
 
