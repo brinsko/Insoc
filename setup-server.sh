@@ -1,17 +1,94 @@
 #!/bin/bash
 # merged server installer:
-# original DNS + rsyslog setup (untouched as much as possible), plus admin blocking helper feature added at the end.
+# original DNS + rsyslog setup, plus admin blocking helper feature added at the end.
 IP="$1"
 FQDN="$2"
 DOMAIN="$3"
 
 [ -z "$IP" ] || [ -z "$FQDN" ] || [ -z "$DOMAIN" ] && {
     echo "Usage: sudo $0 <server-ip> <fqdn> <domain>"
-    echo "Example: sudo $0 192.168.29.206 server.cst.com cst.com"
+    echo "Example: sudo $0 192.168.29.206 server.example.com example.com"
     exit 1
 }
 
 echo "Setting up DNS + Remote Syslog Server — MERGED VERSION (hostname logs + green + zero noise + admin-block)..."
+
+# === helper: auto-configure yum from RHEL ISO ===
+auto_config_local_iso_repo() {
+    echo "Trying to auto-configure local yum repo from ISO..."
+
+    local MOUNTPOINT=""
+    local ISO_FILE=""
+    local REPO_FILE="/etc/yum.repos.d/local-iso.repo"
+
+    # 1) Check for already-mounted ISO (iso9660)
+    local EXISTING_MOUNT
+    EXISTING_MOUNT=$(awk '$3=="iso9660"{print $2}' /etc/mtab | head -n1)
+
+    if [ -n "$EXISTING_MOUNT" ]; then
+        MOUNTPOINT="$EXISTING_MOUNT"
+        echo "Found existing ISO mount at: $MOUNTPOINT"
+    else
+        echo "No existing ISO mount found, searching for *.iso (this might take a bit)..."
+        ISO_FILE=$(find / -maxdepth 5 -type f -name "*.iso" 2>/dev/null | head -n1)
+
+        if [ -z "$ISO_FILE" ]; then
+            echo "No ISO file found on the system. Cannot auto-configure yum."
+            return 1
+        fi
+
+        echo "Found ISO file: $ISO_FILE"
+
+        MOUNTPOINT="/mnt/local-iso"
+        mkdir -p "$MOUNTPOINT"
+
+        if mount | grep -q " $MOUNTPOINT "; then
+            echo "Mountpoint $MOUNTPOINT already in use."
+        else
+            if ! mount -o loop "$ISO_FILE" "$MOUNTPOINT"; then
+                echo "Failed to mount ISO: $ISO_FILE -> $MOUNTPOINT"
+                return 1
+            fi
+            echo "Mounted ISO at $MOUNTPOINT"
+        fi
+    fi
+
+    echo "Scanning $MOUNTPOINT for repodata directories..."
+    mapfile -t REPO_DIRS < <(find "$MOUNTPOINT" -type d -name repodata 2>/dev/null | head -n 20)
+
+    if [ ${#REPO_DIRS[@]} -eq 0 ]; then
+        echo "No repodata directories found under $MOUNTPOINT. ISO may not be a valid RHEL repo source."
+        return 1
+    fi
+
+    # Create / overwrite repo file
+    echo "Creating $REPO_FILE ..."
+    : > "$REPO_FILE"
+
+    local idx=1
+    for rd in "${REPO_DIRS[@]}"; do
+        local parent
+        parent=$(dirname "$rd")
+
+        cat >> "$REPO_FILE" <<EOF
+[local-iso-$idx]
+name=Local ISO repo $idx
+baseurl=file://$parent
+enabled=1
+gpgcheck=0
+
+EOF
+        idx=$((idx+1))
+    done
+
+    echo "Local ISO repo configuration written to $REPO_FILE"
+
+    echo "Running dnf clean all && dnf makecache..."
+    dnf clean all >/dev/null 2>&1 || true
+    dnf makecache || true
+
+    return 0
+}
 
 # === FORCE TAKE PORT 514 ===
 echo "Force-killing anything using port 514..."
@@ -22,10 +99,20 @@ systemctl stop rsyslog syslog-ng auditd 2>/dev/null || true
 sleep 2
 
 # === DNS (RHEL / Rocky / Alma) ===
-# Install BIND (show errors if it fails so it's easier to debug)
+echo "Installing BIND (bind + bind-utils via dnf)..."
 if ! dnf install -y bind bind-utils; then
-    echo "ERROR: Failed to install bind/bind-utils via dnf. Check your repositories and try again."
-    exit 1
+    echo "Initial dnf install failed. Likely no enabled repositories."
+    echo "Attempting to configure local ISO-based yum repo automatically..."
+    if auto_config_local_iso_repo; then
+        echo "Retrying dnf install of bind and bind-utils..."
+        if ! dnf install -y bind bind-utils; then
+            echo "ERROR: Failed to install bind/bind-utils even after ISO repo setup."
+            exit 1
+        fi
+    else
+        echo "ERROR: Could not auto-configure local ISO repo. Fix yum/dnf repos manually."
+        exit 1
+    fi
 fi
 
 hostnamectl set-hostname "$FQDN"
