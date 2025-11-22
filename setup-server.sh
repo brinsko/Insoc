@@ -1,13 +1,14 @@
 #!/bin/bash
 # merged server installer:
-# original DNS + rsyslog setup, plus admin blocking helper feature added at the end.
+# DNS + rsyslog + admin blocking helper.
+
 IP="$1"
 FQDN="$2"
 DOMAIN="$3"
 
 [ -z "$IP" ] || [ -z "$FQDN" ] || [ -z "$DOMAIN" ] && {
     echo "Usage: sudo $0 <server-ip> <fqdn> <domain>"
-    echo "Example: sudo $0 192.168.29.206 server.example.com example.com"
+    echo "Example: sudo $0 192.168.29.206 server.cst.com cst.com"
     exit 1
 }
 
@@ -29,7 +30,7 @@ auto_config_local_iso_repo() {
         MOUNTPOINT="$EXISTING_MOUNT"
         echo "Found existing ISO mount at: $MOUNTPOINT"
     else
-        echo "No existing ISO mount found, searching for *.iso (this might take a bit)..."
+        echo "No existing ISO mount found, searching for *.iso (this may take a bit)..."
         ISO_FILE=$(find / -maxdepth 5 -type f -name "*.iso" 2>/dev/null | head -n1)
 
         if [ -z "$ISO_FILE" ]; then
@@ -268,7 +269,6 @@ echo "   sudo add-client.sh db01    192.168.29.215"
 echo
 
 # === ADMIN BLOCK HELPER (ADDED FEATURE) ===
-# This is additive: creates /usr/local/bin/admin-block-client.sh to block/unblock client IPs.
 cat > /usr/local/bin/admin-block-client.sh <<'AB'
 #!/usr/bin/env bash
 # Usage:
