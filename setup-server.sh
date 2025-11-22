@@ -1,7 +1,6 @@
-
 #!/bin/bash
 # merged server installer:
-# original DNS + rsyslog setup (untouched), plus admin blocking helper feature added at the end.
+# original DNS + rsyslog setup (untouched as much as possible), plus admin blocking helper feature added at the end.
 IP="$1"
 FQDN="$2"
 DOMAIN="$3"
@@ -22,9 +21,17 @@ done
 systemctl stop rsyslog syslog-ng auditd 2>/dev/null || true
 sleep 2
 
-# === DNS ===
-dnf install -y bind bind-utils &>/dev/null || true
+# === DNS (RHEL / Rocky / Alma) ===
+# Install BIND (show errors if it fails so it's easier to debug)
+if ! dnf install -y bind bind-utils; then
+    echo "ERROR: Failed to install bind/bind-utils via dnf. Check your repositories and try again."
+    exit 1
+fi
+
 hostnamectl set-hostname "$FQDN"
+
+# Make sure zone directory exists
+mkdir -p /var/named
 
 cat > /etc/named.conf <<EON
 options {
@@ -46,8 +53,18 @@ cat > /var/named/$DOMAIN.zone <<EOZ
 $(echo $FQDN | cut -d. -f1) IN A $IP
 EOZ
 
-chown -R named:named /var/named
-systemctl enable --now named
+# Set ownership if 'named' user exists
+if id named &>/dev/null; then
+    chown -R named:named /var/named
+fi
+
+# Enable and start named only if the unit exists
+if systemctl list-unit-files | grep -q '^named.service'; then
+    systemctl enable --now named
+else
+    echo "WARNING: named.service not found. Check if BIND is installed correctly."
+fi
+
 firewall-cmd --add-service=dns --permanent &>/dev/null || true
 firewall-cmd --reload &>/dev/null || true
 
@@ -230,5 +247,4 @@ echo "Use: sudo /usr/local/bin/admin-block-client.sh block|unblock|status <clien
 # ensure marker dir exists
 mkdir -p /var/lib/admin-block-client
 
-
-echo "Created /usr/local/bin/setup-my-dns-and-logging-server.sh and made it executable."
+echo "Created /usr/local/bin/setup-server.sh and made it executable."
